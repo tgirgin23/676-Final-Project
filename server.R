@@ -15,38 +15,37 @@ library(RPostgreSQL)
 # Storing the geojson to the database
 #system("ogr2ogr -f \"PostgreSQL\" PG:\"dbname=final_project user=timur1\" \"./Final_project/www/all_month.geojson\" -nln month_earthquake -OVERWRITE")
 
-# Initializing the PostgreSQL driver
-drv <- dbDriver("PostgreSQL")
-
-# Connecting to the database
-con <- dbConnect(drv, dbname="final_project")
-
-# Querying for the number of rows in the tables
-countRows <- dbGetQuery(con, "SELECT count(*) FROM month_earthquake")[[1]]
-countCountries <- dbGetQuery(con, "SELECT count(*) FROM countries")[[1]]
-
-# Querying for the longitude
-lon <- dbGetQuery(con, "SELECT ST_X(ST_AsText(ST_GeomFromEWKB(wkb_geometry)))  FROM month_earthquake")
-
-# Querying for the latitude
-lat <- dbGetQuery(con, "SELECT ST_Y(ST_AsText(ST_GeomFromEWKB(wkb_geometry)))  FROM month_earthquake")
-
-# Querying for the depth
-depth <- dbGetQuery(con, "SELECT ST_Z(ST_AsText(ST_GeomFromEWKB(wkb_geometry)))  FROM month_earthquake")
-
-# Querying for the mag
-mag <- dbGetQuery(con, "SELECT mag FROM month_earthquake")
-
-# Querying the country names
-countryName <- dbGetQuery(con, "SELECT rtrim(name) FROM countries")
-
-for(j in 1:countCountries)
-{
-  # "Choice 1" = 1, "Choice 2" = 2, "Choice 3" = 3
-  #name <- noquote(paste("\"", countryName[[1]], "\"", " = ", countryName[[1]], sep = ""))
-  name <- paste("\"", countryName[[1]], "\"", " = ", countryName[[1]], sep = "")
-  
-}
+# # Initializing the PostgreSQL driver
+# drv <- dbDriver("PostgreSQL")
+# 
+# # Connecting to the database
+# con <- dbConnect(drv, dbname="final_project")
+# 
+# # Querying for the number of rows in the tables
+# countRows <- dbGetQuery(con, "SELECT count(*) FROM month_earthquake")[[1]]
+# countCountries <- dbGetQuery(con, "SELECT count(*) FROM countries")[[1]]
+# 
+# # Querying for the longitude
+# lon <- dbGetQuery(con, "SELECT ST_X(ST_AsText(ST_GeomFromEWKB(wkb_geometry)))  FROM month_earthquake")
+# 
+# # Querying for the latitude
+# lat <- dbGetQuery(con, "SELECT ST_Y(ST_AsText(ST_GeomFromEWKB(wkb_geometry)))  FROM month_earthquake")
+# 
+# # Querying for the depth
+# depth <- dbGetQuery(con, "SELECT ST_Z(ST_AsText(ST_GeomFromEWKB(wkb_geometry)))  FROM month_earthquake")
+# 
+# # Querying for the mag
+# mag <- dbGetQuery(con, "SELECT mag FROM month_earthquake")
+# 
+# # Querying the country names
+# countryName <- dbGetQuery(con, "SELECT rtrim(name) FROM countries")
+# 
+# for(j in 1:countCountries)
+# {
+#   # "Choice 1" = 1, "Choice 2" = 2, "Choice 3" = 3
+#   #name <- noquote(paste("\"", countryName[[1]], "\"", " = ", countryName[[1]], sep = ""))
+#   name <- paste("\"", countryName[[1]], "\"", " = ", countryName[[1]], sep = "") 
+# }
 
 # Define server logic required to draw a histogram;
 # Added sesssion argument so that we can create the map
@@ -60,10 +59,13 @@ shinyServer(function(input, output, session) {
     
     # Calculate time it takes to run the for loop
     ptm <- proc.time()
-    for(i in 1:countRows)
+    
+    circleMarker <- function(lat, lon, mag, id) 
     {
-      map$addCircleMarker(lat[[1]][[i]], lon[[1]][[i]], mag[[1]][[i]])
+       map$addCircleMarker(lat, lon, mag*2, layerId = id)
     }
+    
+    mapply(circleMarker, lat[[1]], lon[[1]], mag[[1]], ids[[1]])
     # Stops the chrono
     time <- proc.time() - ptm
    
@@ -75,5 +77,27 @@ shinyServer(function(input, output, session) {
     output$value <- renderPrint({ 
       input$select 
     })
+
+    showMapPopup <- function(lat, lon, id) 
+    {
+      textBox <- as.character(tagList(
+        tags$h4("Magnitude: ", lon)
+      ))
+      map$showPopup(lat, lon, content = textBox, layerId = id)
+    }
+
+  # When map is clicked, show a popup with city info
+  eventListener <- observe({
+    map$clearPopups()
+    event <- input$map_marker_click
+    if (is.null(event))
+      return()
+    
+    isolate({
+      event <- input$map_marker_click
+      showMapPopup(event$lat, event$lng, event$id)
+    })
+  })
+
   }) 
 })
