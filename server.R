@@ -6,47 +6,6 @@ library(maps)
 library(gdalUtils)
 library(RPostgreSQL)
 
-# setwd("~/Google Drive/Spring 2015/CS 368/")
-# Downloading the CSV file containing data about earthquakes
-#URL <- "http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson"
-#download.file(URL, destfile = "./Final_project/www/all_month.geojson", method = "auto", quiet = TRUE)
-#x <- getURL(URL)
-
-# Storing the geojson to the database
-#system("ogr2ogr -f \"PostgreSQL\" PG:\"dbname=final_project user=timur1\" \"./Final_project/www/all_month.geojson\" -nln month_earthquake -OVERWRITE")
-
-# # Initializing the PostgreSQL driver
-# drv <- dbDriver("PostgreSQL")
-# 
-# # Connecting to the database
-# con <- dbConnect(drv, dbname="final_project")
-# 
-# # Querying for the number of rows in the tables
-# countRows <- dbGetQuery(con, "SELECT count(*) FROM month_earthquake")[[1]]
-# countCountries <- dbGetQuery(con, "SELECT count(*) FROM countries")[[1]]
-# 
-# # Querying for the longitude
-# lon <- dbGetQuery(con, "SELECT ST_X(ST_AsText(ST_GeomFromEWKB(wkb_geometry)))  FROM month_earthquake")
-# 
-# # Querying for the latitude
-# lat <- dbGetQuery(con, "SELECT ST_Y(ST_AsText(ST_GeomFromEWKB(wkb_geometry)))  FROM month_earthquake")
-# 
-# # Querying for the depth
-# depth <- dbGetQuery(con, "SELECT ST_Z(ST_AsText(ST_GeomFromEWKB(wkb_geometry)))  FROM month_earthquake")
-# 
-# # Querying for the mag
-# mag <- dbGetQuery(con, "SELECT mag FROM month_earthquake")
-# 
-# # Querying the country names
-# countryName <- dbGetQuery(con, "SELECT rtrim(name) FROM countries")
-# 
-# for(j in 1:countCountries)
-# {
-#   # "Choice 1" = 1, "Choice 2" = 2, "Choice 3" = 3
-#   #name <- noquote(paste("\"", countryName[[1]], "\"", " = ", countryName[[1]], sep = ""))
-#   name <- paste("\"", countryName[[1]], "\"", " = ", countryName[[1]], sep = "") 
-# }
-
 # Define server logic required to draw a histogram;
 # Added sesssion argument so that we can create the map
 shinyServer(function(input, output, session) {
@@ -56,32 +15,27 @@ shinyServer(function(input, output, session) {
   
   # Wait until map is loaded
   session$onFlushed(once = TRUE, function() {
+  
+# The 4 commented lines below were written to add a progress bar. 
+# However, the progress bar made adding circles to the map extremely slow.
+#     n <- 0
+#     withProgress(message = 'Making plot', value = 0, max = countRows, session = session, {
     
-    # Calculate time it takes to run the for loop
-    ptm <- proc.time()
-    
-    circleMarker <- function(lat, lon, mag, id) 
-    {
-       map$addCircleMarker(lat, lon, mag*2, layerId = id)
-    }
-    
-    mapply(circleMarker, lat[[1]], lon[[1]], mag[[1]], ids[[1]])
-    # Stops the chrono
-    time <- proc.time() - ptm
+      circleMarker <- function(lat, lon, mag, id) 
+      {
+         map$addCircleMarker(lat, lon, mag*2, layerId = id)
+         #n <- n + 1
+#          incProgress(1/n, session = session)
+      }
+      
+      mapply(circleMarker, lat[[1]], lon[[1]], mag[[1]], ids[[1]])
+#     })
    
-    # Output text
-    output$text1 <- renderPrint({ 
-      paste("It took ", time)
-    })
-    # Output name
-    output$value <- renderPrint({ 
-      input$select 
-    })
 
     showMapPopup <- function(lat, lon, id) 
     {
       textBox <- as.character(tagList(
-        tags$h4("Magnitude: ", lon)
+        tags$h4("Magnitude: ", n)
       ))
       map$showPopup(lat, lon, content = textBox, layerId = id)
     }
@@ -98,6 +52,5 @@ shinyServer(function(input, output, session) {
       showMapPopup(event$lat, event$lng, event$id)
     })
   })
-
   }) 
 })

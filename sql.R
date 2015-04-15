@@ -39,3 +39,6 @@ selectCountry <- function(countryName)
 #     WHERE st_within(ST_GeomFromWKB(month_earthquake.wkb_geometry, 4326), countries.geom) 
 #     and countries.name LIKE 'United%'")
 }
+
+dbDisconnect(con)
+dbUnloadDriver(drv)
