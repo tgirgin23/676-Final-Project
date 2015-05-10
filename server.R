@@ -80,13 +80,10 @@ shinyServer(function(input, output, session) {
       })
       # Clearing all markers that are on the map so that new ones can be added depending on the inputs
       map$clearMarkers()
+      
       # This is done for efficiency as there is a lot of data for USA
       if(selectedCountry == "United States")
       {        
-        output$text1 <- renderText({ 
-          paste("You have selected ", magRange[1])
-        })
-        
         # Calling the function to query for the data using the available information
         USAFunction(magRange[1], magRange[2])
         for (i in seq_len(length(USAQuery[,1]))) 
@@ -106,10 +103,24 @@ shinyServer(function(input, output, session) {
       }
       else
       {
+        # Clearing all markers that are on the map so that new ones can be added depending on the inputs
+        map$clearMarkers()
+        
         # Changing the view of the map to the country selected by the user
         newView <- changeCountryView(selectedCountry)
         map$setView(newView[,1], newView[,2], 4)
-        
+          
+        countryQuery <- otherCountry(magRange[1], magRange[2], selectedCountry)
+        for (i in seq_len(length(countryQuery[,1])))
+        {
+          #circleMarker <- function(lat, lon, mag, id) 
+          #SELECT lat, lon, ids, depth, mag, place
+          circleMarker(as.numeric(countryQuery[i,1]),
+                       as.numeric(countryQuery[i,2]),
+                       as.numeric(countryQuery[i,4]),
+                       as.character(countryQuery[i,3]))
+        }
+
       }
       
       #updateGraph()

@@ -28,7 +28,8 @@ USAFunction <- function(min, max)
 # This will get all the info needed to create the proportional symbols and the popups
 otherCountry <- function(min, max, country)
 {
-  selCountryQuery <- dbGetQuery(con, paste("SELECT lat, lon, depth, mag, place 
+  con <- dbConnect(drv, dbname="final_project")
+  selCountryQuery <- dbGetQuery(con, paste("SELECT lat, lon, ids, depth, mag, place 
                                             FROM month_earthquake, countries 
                                             WHERE st_within(ST_GeomFromEWKB(month_earthquake.wkb_geometry), 
                                             countries.geom) 
