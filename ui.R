@@ -3,6 +3,8 @@ library(ShinyDash)
 library(leaflet)
 source("sql.R")
 library(shinydashboard)
+library(dygraphs)
+
 
 setwd("~/Google Drive/Spring 2015/CS 368/Final_project/")
 
@@ -24,8 +26,8 @@ dashboardPage(
             initialTileLayerAttribution = HTML('Maps by <a href="http://www.mapbox.com/">Mapbox</a>'),
             options=list(
               center = c(38.833333, -98.583333),
-              zoom = 4,
-              maxBounds = list(list(17, -180), list(59, 180))
+              zoom = 4
+              #maxBounds = list(list(17, -180), list(59, 180))
             )
           )
         )
@@ -42,9 +44,13 @@ dashboardPage(
                         max = 10, value = c(0, 10))
           )
         ),
+#         box(
+#           dygraphOutput("dygraph")
+#         ),
       
         textOutput("text1"),
-        textOutput("event")
+        textOutput("first"),
+        textOutput("second")
       )
     )
   )
