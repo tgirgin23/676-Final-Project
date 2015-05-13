@@ -3,10 +3,10 @@ library(ShinyDash)
 library(leaflet)
 source("sql.R")
 library(shinydashboard)
-library(dygraphs)
+#library(dygraphs)
 
 
-setwd("~/Google Drive/Spring 2015/CS 368/Final_project/")
+#setwd("~/Google Drive/Spring 2015/CS 368/Final_project/")
 
 dashboardPage(
   dashboardHeader(title = "Earthquakes map"),
@@ -32,21 +32,20 @@ dashboardPage(
           )
         )
       ),
+      # This is a column that places the menus in the right place (using twitter bootstrap)
       column(width = 3,
         tabBox(title = NULL, id = "boxes", width = NULL,
           tabPanel("Country",
             selectInput("select", label = NULL, 
-                        choices = test, 
+                        choices = countryName, 
                         selected = "United States")
           ),
+          # This is the magnitude menu
           tabPanel("Magnitude",
             sliderInput("magSlider", label = NULL, min = 0, 
                         max = 10, value = c(0, 10))
           )
         ),
-#         box(
-#           dygraphOutput("dygraph")
-#         ),
       
         textOutput("text1"),
         textOutput("first"),

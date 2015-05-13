@@ -1,20 +1,16 @@
 library(shiny)
 library(RCurl)
 library(leaflet)
-library(ggplot2)
-library(maps)
 library(gdalUtils)
 library(RPostgreSQL)
 source("sql.R")
-library(dygraphs)
-
-test0 <- 0
 
 # Initializing the PostgreSQL driver
 drv <- dbDriver("PostgreSQL")
 
 # Connecting to the database
-con <- dbConnect(drv, dbname="final_project")
+con <- dbConnect(drv, user=" ", host="localhost", port="5432", dbname="final_project", password=" ")
+#con <- dbConnect(drv, dbname="final_project")
 
 # Define server logic required to draw a histogram;
 # Added sesssion argument so that we can create the map
@@ -33,7 +29,7 @@ shinyServer(function(input, output, session) {
     
       circleMarker <- function(lat, lon, mag, id) 
       {
-         map$addCircleMarker(lat, lon, mag*2, layerId = id)  
+         map$addCircleMarker(lat, lon, mag+9, layerId = id)  
 #          n <- n + 1
 #          incProgress(1/n, session = session)
       }
@@ -52,9 +48,7 @@ shinyServer(function(input, output, session) {
 
       })
     })
-    output$first <- renderText({ 
-      paste("first pass ", secondPass)
-    })
+
     # Checking for any change in the COUNTRY dropdown menu
     selectionListener <- observe({
       selectedCountry <<- input$select
@@ -67,25 +61,25 @@ shinyServer(function(input, output, session) {
 
         # This variable has a global scope so that I can access it in my updateMarkers function
         magRange <<- input$magSlider
-        updateMarkers()
-      
+        updateMarkers() 
     })
 
     # This function will update the markers on the map
     updateMarkers <- function()
     {
-      test0 <- test0 + 1
-      output$second <- renderText({ 
-        paste("#", test0)
-      })
+
       # Clearing all markers that are on the map so that new ones can be added depending on the inputs
       map$clearMarkers()
       
       # This is done for efficiency as there is a lot of data for USA
       if(selectedCountry == "United States")
       {        
+        # Re-center the map for USA
+        map$setView(38.833333, -98.583333, 4)
         # Calling the function to query for the data using the available information
         USAFunction(magRange[1], magRange[2])
+        
+        # Looping through the downloaded data from the database 
         for (i in seq_len(length(USAQuery[,1]))) 
         {
           # Storing the information from the query in a variable
@@ -109,37 +103,20 @@ shinyServer(function(input, output, session) {
         # Changing the view of the map to the country selected by the user
         newView <- changeCountryView(selectedCountry)
         map$setView(newView[,1], newView[,2], 4)
-          
+        
+        # Getting the data from the database from the user input
         countryQuery <- otherCountry(magRange[1], magRange[2], selectedCountry)
+        
+        # Looping through the data downloaded from the database
         for (i in seq_len(length(countryQuery[,1])))
         {
-          #circleMarker <- function(lat, lon, mag, id) 
-          #SELECT lat, lon, ids, depth, mag, place
+          # Creating the proportional symbols
           circleMarker(as.numeric(countryQuery[i,1]),
                        as.numeric(countryQuery[i,2]),
                        as.numeric(countryQuery[i,4]),
                        as.character(countryQuery[i,3]))
         }
-
       }
-      
-      #updateGraph()
-    }
-
-
-#     updateGraph <- function()
-#     {
-#       output$dygraph <- renderDygraph
-#       ({
-#           dygraph(predicted(), main = "Predicted Deaths/Month") %>%
-#           dySeries(c("lwr", "fit", "upr"), label = "Deaths") %>%
-#           dyOptions(drawGrid = input$showgrid)
-#       })
-#     }
-
-    graphOutput <- function()
-    {
-      
     }
 
     showMapPopup <- function(lat, lon, id) 
@@ -153,10 +130,16 @@ shinyServer(function(input, output, session) {
       textBox <- as.character(tagList(
                               tags$h4("Magnitude: ", infoPopup[1]),
                               tags$strong(infoPopup[4]), tags$br(),
-                              sprintf("Depth of the earthquake: %s", infoPopup[2]))
+                              sprintf("Depth of the earthquake (KM): %s", infoPopup[2]))
                               )
       # Will show the popup on the pressed marker with the above text
       map$showPopup(lat, lon, content = textBox, layerId = id)
     }
+  
+    # When the session has ended (browser closed), disconnect from the database
+    session$onSessionEnded(function() {
+      dbDisconnect(con)
+      dbUnloadDriver(drv)
+    })
   })
 })
